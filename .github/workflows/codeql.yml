@@ -1,0 +1,90 @@
+name: "CodeQL Security Analysis"
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+  schedule:
+    # Run at 2:00 AM UTC every Monday
+    - cron: '0 2 * * 1'
+  workflow_dispatch:
+
+jobs:
+  analyze:
+    name: Analyze Code
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'go' ]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.21'
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: ${{ matrix.language }}
+        # Use custom queries from the codeql-queries directory
+        queries: +security-and-quality,./codeql-queries
+        
+    - name: Autobuild
+      uses: github/codeql-action/autobuild@v3
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:${{ matrix.language }}"
+        upload: true
+        output: sarif-results
+        
+    - name: Upload SARIF results as artifact
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: codeql-results
+        path: sarif-results
+        retention-days: 30
+
+    - name: Comment on PR with results summary
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+          
+          // This is a placeholder - actual implementation would parse SARIF
+          const comment = `## 🔍 CodeQL Security Analysis
+          
+          ⚠️ **Note**: This repository contains intentionally vulnerable code for educational purposes.
+          
+          CodeQL analysis has been completed. Check the Security tab for detailed results.
+          
+          Expected vulnerabilities in this project:
+          - CWE-022: Path Traversal
+          - CWE-078: Command Injection  
+          - CWE-327: Weak Cryptography (MD5)
+          - CWE-404: Resource Leak
+          - CWE-798: Hard-coded Credentials
+          
+          **Remember**: This code should never be used in production!`;
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });
