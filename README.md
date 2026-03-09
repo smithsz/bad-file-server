@@ -1,5 +1,7 @@
 # Bad File Server
 
+foo
+
 ⚠️ **WARNING: This is an intentionally vulnerable application for educational purposes only. DO NOT use in production or expose to the internet!**
 
 ## Overview
