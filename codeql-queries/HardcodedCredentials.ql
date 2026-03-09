@@ -10,10 +10,9 @@
 
 import go
 
-from ValueSpec v, string name
+from ValueSpec v, BasicLit lit
 where
-  v.getType().getUnderlyingType() instanceof StringType and
-  v.getInit(0).(BasicLit).getValue().regexpMatch(".*(?i)(password|secret|key|token|api[_-]?key).*") and
-  name = v.getNameExpr().getName() and
-  name.regexpMatch(".*(?i)(password|secret|key|token|api).*")
-select v, "Hard-coded credential found: " + name + " should be stored securely, not in source code."
+  lit = v.getInit(0) and
+  lit.getValue().regexpMatch(".*(?i)(secret|password|key|token).*") and
+  lit.getValue().length() > 5
+select v, "Hard-coded credential found. Credentials should be stored securely, not in source code."

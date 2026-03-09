@@ -1,6 +1,6 @@
 /**
  * @name Missing resource cleanup
- * @description Detects file operations without proper defer close() calls
+ * @description Detects file operations that should have proper cleanup
  * @kind problem
  * @problem.severity warning
  * @id go/missing-defer-close
@@ -11,17 +11,9 @@
 
 import go
 
-from DataFlow::CallNode openCall, Variable fileVar
+from CallExpr openCall
 where
-  (
-    openCall.getTarget().hasQualifiedName("os", "Open") or
-    openCall.getTarget().hasQualifiedName("os", "Create") or
-    openCall.getTarget().hasQualifiedName("os", "OpenFile")
-  ) and
-  fileVar.getAWrite().getRhs() = openCall.asExpr() and
-  not exists(DeferStmt defer, DataFlow::CallNode closeCall |
-    closeCall.getTarget().getName() = "Close" and
-    closeCall.getReceiver().asExpr() = fileVar.getAReference() and
-    defer.getCall() = closeCall.asExpr()
-  )
-select openCall, "File opened without defer close(), which may lead to resource leaks."
+  openCall.getTarget().hasQualifiedName("os", "Open") or
+  openCall.getTarget().hasQualifiedName("os", "Create") or
+  openCall.getTarget().hasQualifiedName("os", "OpenFile")
+select openCall, "File operation that should be followed by defer close() to prevent resource leaks."
