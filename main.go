@@ -14,6 +14,8 @@ import (
 // CWE-798: Use of Hard-coded Credentials
 const AdminKey = "super-secret-123"
 
+var apiPassword = "my-secret-password-123"
+var dbToken = "hardcoded-token-abc123"
 var sessionTokens = make(map[string]string)
 var bufferCache [][]byte // For memory leak demonstration
 
@@ -24,6 +26,7 @@ func main() {
 	http.HandleFunc("/session", sessionHandler)
 	http.HandleFunc("/admin", adminHandler)
 	http.HandleFunc("/process", processDataHandler)
+	http.HandleFunc("/authenticate", authenticateHandler)
 
 	log.Println("Starting vulnerable file server on :8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
@@ -142,6 +145,35 @@ func adminHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Admin access granted")
 }
 
+// CWE-798: Using hardcoded credentials in HTTP POST
+func authenticateHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	username := r.FormValue("username")
+	password := r.FormValue("password")
+
+	// Vulnerable: Using hardcoded credentials for authentication
+	if password == apiPassword || password == dbToken {
+		fmt.Fprintf(w, "Authentication successful for user: %s", username)
+
+
+		// Vulnerable POST with hardcoded token in URL
+		resp, err2 := http.Post("http://api.example.com/verify?token=hardcoded-secret-token-xyz",
+			"application/json",
+			nil)
+		if err2 == nil {
+			defer resp.Body.Close()
+		}
+
+		log.Printf("User authenticated with hardcoded credential: %s", apiPassword)
+	} else {
+		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+	}
+}
+
 // CWE-193: Off-by-one Error & CWE-476: NULL Pointer Dereference
 func processDataHandler(w http.ResponseWriter, r *http.Request) {
 	data := r.URL.Query().Get("data")
@@ -168,7 +200,7 @@ func processDataHandler(w http.ResponseWriter, r *http.Request) {
 	var result *string
 	// Vulnerable: Using result before checking if it's nil
 	output := *result // This will panic if result is nil
-	
+
 	if result == nil {
 		temp := "processed"
 		result = &temp

@@ -20,15 +20,21 @@ This directory contains custom CodeQL queries designed to detect the security vu
 - **CWE**: CWE-798 (Hard-coded Credentials)
 - **Severity**: Error
 - **Description**: Finds hard-coded passwords, secrets, API keys, and tokens in source code
-- **Target**: `AdminKey` constant
+- **Targets**: `AdminKey` constant, `apiPassword` variable, `dbToken` variable
 
-### 4. WeakCryptography.ql
+### 4. hardcoded-credentials-dataflow.ql
+- **CWE**: CWE-798 (Hard-coded Credentials - Data Flow)
+- **Severity**: Warning
+- **Description**: Tracks hard-coded secrets from their definition to sensitive sinks like HTTP POST requests
+- **Target**: `authenticateHandler` function where hardcoded secrets flow to `http.Post()`
+
+### 5. WeakCryptography.ql
 - **CWE**: CWE-327 (Weak Cryptographic Algorithm)
 - **Severity**: Warning
 - **Description**: Detects use of MD5 or SHA1 cryptographic algorithms
 - **Target**: `sessionHandler` function
 
-### 5. ResourceLeak.ql
+### 6. ResourceLeak.ql
 - **CWE**: CWE-404 (Improper Resource Shutdown)
 - **Severity**: Warning
 - **Description**: Finds file operations without proper `defer close()` calls
@@ -74,6 +80,9 @@ codeql query run codeql-queries/CommandInjection.ql --database=codeql-db
 # Hard-coded Credentials
 codeql query run codeql-queries/HardcodedCredentials.ql --database=codeql-db
 
+# Hard-coded Credentials Data Flow
+codeql query run codeql-queries/hardcoded-credentials-dataflow.ql --database=codeql-db
+
 # Weak Cryptography
 codeql query run codeql-queries/WeakCryptography.ql --database=codeql-db
 
@@ -117,9 +126,10 @@ When running these queries against the bad-file-server code, you should see:
 
 1. **PathTraversal.ql**: 1 result in `viewFileHandler`
 2. **CommandInjection.ql**: 1 result in `metadataHandler`
-3. **HardcodedCredentials.ql**: 1 result for `AdminKey` constant
-4. **WeakCryptography.ql**: 1 result in `sessionHandler` (MD5 usage)
-5. **ResourceLeak.ql**: 1 result in `uploadHandler` (missing defer close)
+3. **HardcodedCredentials.ql**: 3 results (`AdminKey`, `apiPassword`, `dbToken`)
+4. **hardcoded-credentials-dataflow.ql**: 1+ results showing data flow from hardcoded secrets to `http.Post()` in `authenticateHandler`
+5. **WeakCryptography.ql**: 1 result in `sessionHandler` (MD5 usage)
+6. **ResourceLeak.ql**: 1 result in `uploadHandler` (missing defer close)
 
 ## Integration with GitHub
 

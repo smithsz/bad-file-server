@@ -31,9 +31,13 @@ This application contains the following security issues:
 - **Impact**: Can exhaust file descriptors under load
 
 ### CWE-798: Hard-coded Credentials
-- **Endpoint**: `/admin` (requires `X-API-Key` header)
-- **Issue**: Admin API key is hardcoded in source code
-- **Credential**: `super-secret-123`
+- **Endpoints**: `/admin` (requires `X-API-Key` header), `/authenticate` (POST)
+- **Issue**: Multiple credentials hardcoded in source code
+- **Credentials**:
+  - `AdminKey`: `super-secret-123`
+  - `apiPassword`: `my-secret-password-123`
+  - `dbToken`: `hardcoded-token-abc123`
+- **Additional Issue**: Hardcoded secrets used in HTTP POST requests, creating a data flow vulnerability
 
 ### CWE-193: Off-by-one Error
 - **Endpoint**: `/process?data=<input>`
@@ -92,6 +96,12 @@ curl "http://localhost:8080/session?user=admin"
 ### Admin Access (Hard-coded Credentials)
 ```bash
 curl -H "X-API-Key: super-secret-123" http://localhost:8080/admin
+```
+
+### Authenticate (Hard-coded Credentials with Data Flow)
+```bash
+curl -X POST -d "username=admin&password=test" http://localhost:8080/authenticate
+# Demonstrates hardcoded credentials used in HTTP POST requests
 ```
 
 ### Process Data (Multiple Issues)
